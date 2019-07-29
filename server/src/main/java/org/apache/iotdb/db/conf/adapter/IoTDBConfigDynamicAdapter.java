@@ -212,10 +212,16 @@ public class IoTDBConfigDynamicAdapter implements IDynamicAdapter {
    * TODO: Currently IoTDB only supports to add a storage group.
    */
   @Override
-  public void addOrDeleteStorageGroup(int diff) throws ConfigAdjusterException {
+  public synchronized void addOrDeleteStorageGroup(int diff) throws ConfigAdjusterException {
+    LOGGER.info(
+        "Before adding a storage group, storage group size is {}, timeseries size is {},  max memTable num is {}, tsFile threshold is {}, memtableSize is {}, memTableSizeFloorThreshold is {}",
+        totalStorageGroup, totalTimeseries, maxMemTableNum, CONFIG.getTsFileSizeThreshold(),
+        CONFIG.getMemtableSizeThreshold(),
+        getMemTableSizeFloorThreshold());
+
     totalStorageGroup += diff;
     maxMemTableNum += 4 * diff;
-    if(!CONFIG.isEnableParameterAdapter()){
+    if (!CONFIG.isEnableParameterAdapter()) {
       CONFIG.setMaxMemtableNumber(maxMemTableNum);
       return;
     }
@@ -225,19 +231,40 @@ public class IoTDBConfigDynamicAdapter implements IDynamicAdapter {
       throw new ConfigAdjusterException(
           "The IoTDB system load is too large to create storage group.");
     }
+    LOGGER.info(
+        "After adding a storage group, storage group size is {}, timeseries size is {},  max memTable num is {}, tsFile threshold is {}, memtableSize is {}, memTableSizeFloorThreshold is {}",
+        totalStorageGroup, totalTimeseries, maxMemTableNum, CONFIG.getTsFileSizeThreshold(),
+        CONFIG.getMemtableSizeThreshold(),
+        getMemTableSizeFloorThreshold());
   }
 
   @Override
-  public void addOrDeleteTimeSeries(int diff) throws ConfigAdjusterException {
+  public synchronized void addOrDeleteTimeSeries(int diff) throws ConfigAdjusterException {
     if(!CONFIG.isEnableParameterAdapter()){
       return;
     }
+    if((totalTimeseries + 1) % 100 == 0) {
+      LOGGER.info(
+          "Before adding a timeseries, storage group size is {}, timeseries size is {},  max memTable num is {}, tsFile threshold is {}, memtableSize is {}, memTableSizeFloorThreshold is {}",
+          totalStorageGroup, totalTimeseries, maxMemTableNum, CONFIG.getTsFileSizeThreshold(),
+          CONFIG.getMemtableSizeThreshold(),
+          getMemTableSizeFloorThreshold());
+    }
+
     totalTimeseries += diff;
     staticMemory += diff * TIMESERIES_METADATA_SIZE_IN_BYTE;
     if (!tryToAdaptParameters()) {
       totalTimeseries -= diff;
       staticMemory -= diff * TIMESERIES_METADATA_SIZE_IN_BYTE;
       throw new ConfigAdjusterException("The IoTDB system load is too large to add timeseries.");
+    }
+
+    if(totalTimeseries % 100 == 0) {
+      LOGGER.info(
+          "After adding a timeseries, storage group size is {}, timeseries size is {},  max memTable num is {}, tsFile threshold is {}, memtableSize is {}, memTableSizeFloorThreshold is {}",
+          totalStorageGroup, totalTimeseries, maxMemTableNum, CONFIG.getTsFileSizeThreshold(),
+          CONFIG.getMemtableSizeThreshold(),
+          getMemTableSizeFloorThreshold());
     }
   }
 
