@@ -212,7 +212,7 @@ public class IoTDBConfigDynamicAdapter implements IDynamicAdapter {
    * TODO: Currently IoTDB only supports to add a storage group.
    */
   @Override
-  public synchronized void addOrDeleteStorageGroup(int diff) throws ConfigAdjusterException {
+  public void addOrDeleteStorageGroup(int diff) throws ConfigAdjusterException {
     LOGGER.info(
         "Before adding a storage group, storage group size is {}, timeseries size is {},  max memTable num is {}, tsFile threshold is {}, memtableSize is {}, memTableSizeFloorThreshold is {}",
         totalStorageGroup, totalTimeseries, maxMemTableNum, CONFIG.getTsFileSizeThreshold(),
@@ -239,7 +239,7 @@ public class IoTDBConfigDynamicAdapter implements IDynamicAdapter {
   }
 
   @Override
-  public synchronized void addOrDeleteTimeSeries(int diff) throws ConfigAdjusterException {
+  public void addOrDeleteTimeSeries(int diff) throws ConfigAdjusterException {
     if(!CONFIG.isEnableParameterAdapter()){
       return;
     }
