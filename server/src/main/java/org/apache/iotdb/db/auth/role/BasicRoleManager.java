@@ -24,9 +24,12 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import org.apache.iotdb.db.auth.AuthException;
+import org.apache.iotdb.db.exception.auth.AuthException;
 import org.apache.iotdb.db.auth.entity.Role;
 import org.apache.iotdb.db.concurrent.HashLock;
+import org.apache.iotdb.db.exception.auth.PrivilegeExistsException;
+import org.apache.iotdb.db.exception.auth.PrivilegeNonExistsException;
+import org.apache.iotdb.db.exception.auth.RoleNonExistsException;
 import org.apache.iotdb.db.utils.AuthUtils;
 
 /**
@@ -103,17 +106,17 @@ public abstract class BasicRoleManager implements IRoleManager {
   }
 
   @Override
-  public boolean grantPrivilegeToRole(String rolename, String path, int privilegeId)
+  public void grantPrivilegeToRole(String rolename, String path, int privilegeId)
       throws AuthException {
     AuthUtils.validatePrivilegeOnPath(path, privilegeId);
     lock.writeLock(rolename);
     try {
       Role role = getRole(rolename);
       if (role == null) {
-        throw new AuthException(String.format("No such role %s", rolename));
+        throw new RoleNonExistsException(rolename);
       }
       if (role.hasPrivilege(path, privilegeId)) {
-        return false;
+        throw new PrivilegeExistsException(rolename, privilegeId, path);
       }
       Set<Integer> privilegesCopy = new HashSet<>(role.getPrivileges(path));
       role.addPrivilege(path, privilegeId);
@@ -123,24 +126,23 @@ public abstract class BasicRoleManager implements IRoleManager {
         role.setPrivileges(path, privilegesCopy);
         throw new AuthException(e);
       }
-      return true;
     } finally {
       lock.writeUnlock(rolename);
     }
   }
 
   @Override
-  public boolean revokePrivilegeFromRole(String rolename, String path, int privilegeId)
+  public void revokePrivilegeFromRole(String rolename, String path, int privilegeId)
       throws AuthException {
     AuthUtils.validatePrivilegeOnPath(path, privilegeId);
     lock.writeLock(rolename);
     try {
       Role role = getRole(rolename);
       if (role == null) {
-        throw new AuthException(String.format("No such role %s", rolename));
+        throw new RoleNonExistsException(rolename);
       }
       if (!role.hasPrivilege(path, privilegeId)) {
-        return false;
+        throw new PrivilegeNonExistsException(rolename, privilegeId, path);
       }
       role.removePrivilege(path, privilegeId);
       try {
@@ -149,7 +151,6 @@ public abstract class BasicRoleManager implements IRoleManager {
         role.addPrivilege(path, privilegeId);
         throw new AuthException(e);
       }
-      return true;
     } finally {
       lock.writeUnlock(rolename);
     }

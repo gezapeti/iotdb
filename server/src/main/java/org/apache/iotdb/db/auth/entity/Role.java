@@ -97,12 +97,12 @@ public class Role {
       return false;
     }
     Role role = (Role) o;
-    return Objects.equals(name, role.name) && Objects.equals(privilegeList, role.privilegeList);
+    return Objects.equals(name, role.name);
   }
 
   @Override
   public int hashCode() {
 
-    return Objects.hash(name, privilegeList);
+    return Objects.hash(name);
   }
 }

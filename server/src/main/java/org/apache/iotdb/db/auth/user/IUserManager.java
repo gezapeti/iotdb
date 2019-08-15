@@ -19,7 +19,7 @@
 package org.apache.iotdb.db.auth.user;
 
 import java.util.List;
-import org.apache.iotdb.db.auth.AuthException;
+import org.apache.iotdb.db.exception.auth.AuthException;
 import org.apache.iotdb.db.auth.entity.User;
 
 /**
@@ -102,11 +102,10 @@ public interface IUserManager {
    *            The user whose password is to be modified.
    * @param newPassword
    *            The new password.
-   * @return True if the password is successfully modified, false if the new password is illegal.
    * @throws AuthException
    *             If the user does not exists.
    */
-  boolean updateUserPassword(String username, String newPassword) throws AuthException;
+  void updateUserPassword(String username, String newPassword) throws AuthException;
 
   /**
    * Add a role to a user.

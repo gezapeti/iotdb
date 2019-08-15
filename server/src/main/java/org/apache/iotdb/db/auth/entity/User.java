@@ -145,19 +145,11 @@ public class User {
     }
     User user = (User) o;
 
-    return lastActiveTime == user.lastActiveTime && contentEquals(user);
+    return Objects.equals(name, user.name);
   }
-
-  private boolean contentEquals(User user) {
-    return Objects.equals(name, user.name)
-            && Objects.equals(password, user.password)
-            && Objects.equals(privilegeList, user.privilegeList)
-            && Objects.equals(roleList, user.roleList);
-  }
-
 
   @Override
   public int hashCode() {
-    return Objects.hash(name, password, privilegeList, roleList, lastActiveTime);
+    return Objects.hash(name);
   }
 }

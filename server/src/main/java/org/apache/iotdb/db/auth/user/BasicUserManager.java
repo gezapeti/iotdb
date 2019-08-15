@@ -24,7 +24,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import org.apache.iotdb.db.auth.AuthException;
+import org.apache.iotdb.db.exception.auth.AuthException;
 import org.apache.iotdb.db.auth.entity.User;
 import org.apache.iotdb.db.concurrent.HashLock;
 import org.apache.iotdb.db.conf.IoTDBConstant;
@@ -51,7 +51,7 @@ public abstract class BasicUserManager implements IUserManager {
    * @param accessor user accessor
    * @throws AuthException Authentication Exception
    */
-  public BasicUserManager(IUserAccessor accessor) throws AuthException {
+  BasicUserManager(IUserAccessor accessor) throws AuthException {
     this.userMap = new HashMap<>();
     this.accessor = accessor;
     this.lock = new HashLock();
@@ -192,13 +192,8 @@ public abstract class BasicUserManager implements IUserManager {
   }
 
   @Override
-  public boolean updateUserPassword(String username, String newPassword) throws AuthException {
-    try {
-      AuthUtils.validatePassword(newPassword);
-    } catch (AuthException e) {
-      logger.debug("An illegal password detected ", e);
-      return false;
-    }
+  public void updateUserPassword(String username, String newPassword) throws AuthException {
+    AuthUtils.validatePassword(newPassword);
 
     lock.writeLock(username);
     try {
@@ -214,7 +209,6 @@ public abstract class BasicUserManager implements IUserManager {
         user.setPassword(oldPassword);
         throw new AuthException(e);
       }
-      return true;
     } finally {
       lock.writeUnlock(username);
     }

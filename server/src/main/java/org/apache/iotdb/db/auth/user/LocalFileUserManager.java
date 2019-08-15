@@ -18,7 +18,7 @@
  */
 package org.apache.iotdb.db.auth.user;
 
-import org.apache.iotdb.db.auth.AuthException;
+import org.apache.iotdb.db.exception.auth.AuthException;
 
 public class LocalFileUserManager extends BasicUserManager {
 

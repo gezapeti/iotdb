@@ -19,7 +19,7 @@
 package org.apache.iotdb.db.auth.role;
 
 import java.util.List;
-import org.apache.iotdb.db.auth.AuthException;
+import org.apache.iotdb.db.exception.auth.AuthException;
 import org.apache.iotdb.db.auth.entity.Role;
 
 /**
@@ -61,10 +61,9 @@ public interface IRoleManager {
    * @param path        The seriesPath on which the privilege takes effect. If the privilege
    *                    is a seriesPath-free privilege, this should be "root".
    * @param privilegeId An integer that represents a privilege.
-   * @return True if the permission is successfully added, false if the permission already exists.
    * @throws AuthException If the role does not exist or the privilege or the seriesPath is illegal.
    */
-  boolean grantPrivilegeToRole(String rolename, String path, int privilegeId) throws AuthException;
+  void grantPrivilegeToRole(String rolename, String path, int privilegeId) throws AuthException;
 
   /**
    * Revoke a privilege on seriesPath from a role.
@@ -73,11 +72,9 @@ public interface IRoleManager {
    * @param path        The seriesPath on which the privilege takes effect. If the privilege
    *                    is a seriesPath-free privilege like 'CREATE_USER', this should be "root".
    * @param privilegeId An integer that represents a privilege.
-   * @return True if the permission is successfully revoked,
-   *        false if the permission does not exists.
    * @throws AuthException If the role does not exist or the privilege or the seriesPath is illegal.
    */
-  boolean revokePrivilegeFromRole(String rolename, String path,
+  void revokePrivilegeFromRole(String rolename, String path,
       int privilegeId) throws AuthException;
 
   /**
