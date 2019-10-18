@@ -634,7 +634,12 @@ public class TsFileSequenceReader implements AutoCloseable {
             ChunkGroupFooter chunkGroupFooter = this.readChunkGroupFooter();
             deviceID = chunkGroupFooter.getDeviceID();
             endOffsetOfChunkGroup = this.position();
-            currentChunkGroup = new ChunkGroupMetaData(deviceID, chunks, startOffsetOfChunkGroup);
+            try {
+              currentChunkGroup = new ChunkGroupMetaData(deviceID, chunks, startOffsetOfChunkGroup);
+            } catch (IllegalArgumentException e) {
+              logger.error("corrupted tsfile is {}", file);
+              throw e;
+            }
             currentChunkGroup.setEndOffsetOfChunkGroup(endOffsetOfChunkGroup);
             currentChunkGroup.setVersion(versionOfChunkGroup++);
             newMetaData.add(currentChunkGroup);
