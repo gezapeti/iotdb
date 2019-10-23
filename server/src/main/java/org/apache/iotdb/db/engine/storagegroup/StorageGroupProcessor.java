@@ -986,100 +986,6 @@ public class StorageGroupProcessor {
     }
     logger.info("{} a merge task ends", storageGroupName);
   }
-//
-//  /**
-//   * Load a new tsfile to storage group processor
-//   *
-//   * Firstly, determine the loading type of the file, whether it needs to be loaded in sequence list
-//   * or unsequence list.
-//   *
-//   * Secondly, execute the loading process by the type.
-//   *
-//   * Finally, update the latestTimeForEachDevice and latestFlushedTimeForEachDevice.
-//   *
-//   * @param newTsFileResource tsfile resource
-//   * @UsedBy sync module.
-//   */
-//  public void loadNewTsFile(TsFileResource newTsFileResource)
-//      throws TsFileProcessorException {
-//    File tsfileToBeInserted = newTsFileResource.getFile();
-//    writeLock();
-//    mergeLock.writeLock().lock();
-//    try {
-//      boolean isOverlap = false;
-//      int preIndex = -1, subsequentIndex = sequenceFileList.size();
-//
-//      // check new tsfile
-//      outer:
-//      for (int i = 0; i < sequenceFileList.size(); i++) {
-//        if (sequenceFileList.get(i).getFile().getName().equals(tsfileToBeInserted.getName())) {
-//          return;
-//        }
-//        if (i == sequenceFileList.size() - 1 && sequenceFileList.get(i).getEndTimeMap().isEmpty()) {
-//          continue;
-//        }
-//        boolean hasPre = false, hasSubsequence = false;
-//        for (String device : newTsFileResource.getStartTimeMap().keySet()) {
-//          if (sequenceFileList.get(i).getStartTimeMap().containsKey(device)) {
-//            long startTime1 = sequenceFileList.get(i).getStartTimeMap().get(device);
-//            long endTime1 = sequenceFileList.get(i).getEndTimeMap().get(device);
-//            long startTime2 = newTsFileResource.getStartTimeMap().get(device);
-//            long endTime2 = newTsFileResource.getEndTimeMap().get(device);
-//            if (startTime1 > endTime2) {
-//              hasSubsequence = true;
-//            } else if (startTime2 > endTime1) {
-//              hasPre = true;
-//            } else {
-//              isOverlap = true;
-//              break outer;
-//            }
-//          }
-//        }
-//        if (hasPre && hasSubsequence) {
-//          isOverlap = true;
-//          break;
-//        }
-//        if (!hasPre && hasSubsequence) {
-//          subsequentIndex = i;
-//          break;
-//        }
-//        if (hasPre) {
-//          preIndex = i;
-//        }
-//      }
-//
-//      // loading tsfile by type
-//      if (isOverlap) {
-//        loadTsFileByType(LoadTsFileType.LOAD_UNSEQUENCE, tsfileToBeInserted, newTsFileResource,
-//            unSequenceFileList.size());
-//      } else {
-//
-//        // check whether the file name needs to be renamed.
-//        if (subsequentIndex != sequenceFileList.size() || preIndex == -1) {
-//          String newFileName = getFileNameForLoadingFile(tsfileToBeInserted.getName(), preIndex,
-//              subsequentIndex);
-//          if (!newFileName.equals(tsfileToBeInserted.getName())) {
-//            logger.info("Tsfile {} must be renamed to {} for loading into the sequence list.",
-//                tsfileToBeInserted.getName(), newFileName);
-//            newTsFileResource.setFile(new File(tsfileToBeInserted.getParentFile(), newFileName));
-//          }
-//        }
-//        loadTsFileByType(LoadTsFileType.LOAD_SEQUENCE, tsfileToBeInserted, newTsFileResource,
-//            getBinarySearchIndex(newTsFileResource));
-//      }
-//
-//      // update latest time map
-//      updateLatestTimeMap(newTsFileResource);
-//    } catch (TsFileProcessorException | DiskSpaceInsufficientException e) {
-//      logger.error("Failed to append the tsfile {} to storage group processor {}.",
-//          tsfileToBeInserted.getAbsolutePath(), tsfileToBeInserted.getParentFile().getName());
-//      IoTDBDescriptor.getInstance().getConfig().setReadOnly(true);
-//      throw new TsFileProcessorException(e);
-//    } finally {
-//      mergeLock.writeLock().unlock();
-//      writeUnlock();
-//    }
-//  }
 
   /**
    * Load a new tsfile to storage group processor
@@ -1100,8 +1006,69 @@ public class StorageGroupProcessor {
     writeLock();
     mergeLock.writeLock().lock();
     try {
-      loadTsFileByType(LoadTsFileType.LOAD_SEQUENCE, tsfileToBeInserted, newTsFileResource,
-          getBinarySearchIndex(newTsFileResource));
+      boolean isOverlap = false;
+      int preIndex = -1, subsequentIndex = sequenceFileList.size();
+
+      // check new tsfile
+      outer:
+      for (int i = 0; i < sequenceFileList.size(); i++) {
+        if (sequenceFileList.get(i).getFile().getName().equals(tsfileToBeInserted.getName())) {
+          return;
+        }
+        if (i == sequenceFileList.size() - 1 && sequenceFileList.get(i).getEndTimeMap().isEmpty()) {
+          continue;
+        }
+        boolean hasPre = false, hasSubsequence = false;
+        for (String device : newTsFileResource.getStartTimeMap().keySet()) {
+          if (sequenceFileList.get(i).getStartTimeMap().containsKey(device)) {
+            long startTime1 = sequenceFileList.get(i).getStartTimeMap().get(device);
+            long endTime1 = sequenceFileList.get(i).getEndTimeMap().get(device);
+            long startTime2 = newTsFileResource.getStartTimeMap().get(device);
+            long endTime2 = newTsFileResource.getEndTimeMap().get(device);
+            if (startTime1 > endTime2) {
+              hasSubsequence = true;
+            } else if (startTime2 > endTime1) {
+              hasPre = true;
+            } else {
+              isOverlap = true;
+              break outer;
+            }
+          }
+        }
+        if (hasPre && hasSubsequence) {
+          isOverlap = true;
+          break;
+        }
+        if (!hasPre && hasSubsequence) {
+          subsequentIndex = i;
+          break;
+        }
+        if (hasPre) {
+          preIndex = i;
+        }
+      }
+
+      // loading tsfile by type
+      if (isOverlap) {
+        loadTsFileByType(LoadTsFileType.LOAD_UNSEQUENCE, tsfileToBeInserted, newTsFileResource,
+            unSequenceFileList.size());
+      } else {
+
+        // check whether the file name needs to be renamed.
+        if (subsequentIndex != sequenceFileList.size() || preIndex == -1) {
+          String newFileName = getFileNameForLoadingFile(tsfileToBeInserted.getName(), preIndex,
+              subsequentIndex);
+          if (!newFileName.equals(tsfileToBeInserted.getName())) {
+            logger.info("Tsfile {} must be renamed to {} for loading into the sequence list.",
+                tsfileToBeInserted.getName(), newFileName);
+            newTsFileResource.setFile(new File(tsfileToBeInserted.getParentFile(), newFileName));
+          }
+        }
+        loadTsFileByType(LoadTsFileType.LOAD_SEQUENCE, tsfileToBeInserted, newTsFileResource,
+            getBinarySearchIndex(newTsFileResource));
+      }
+
+      // update latest time map
       updateLatestTimeMap(newTsFileResource);
     } catch (TsFileProcessorException | DiskSpaceInsufficientException e) {
       logger.error("Failed to append the tsfile {} to storage group processor {}.",
@@ -1113,7 +1080,6 @@ public class StorageGroupProcessor {
       writeUnlock();
     }
   }
-
 
   /**
    * Get an appropriate filename to ensure the order between files. The tsfile is named after
